@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  plan      String   @default("free")
+  createdAt DateTime @default(now())
+  favorites Favorite[]
+  history   UserAnalysisHistory[]
+}
+
+model Team {
+  id          String       @id @default(cuid())
+  name        String
+  country     String
+  league      String
+  logo        String?
+  stats       TeamStats[]
+  injuries    InjuryNews[]
+  homeMatches Match[]      @relation("HomeTeam")
+  awayMatches Match[]      @relation("AwayTeam")
+  analyses    Analysis[]
+  favorites   Favorite[]
+}
+
+model Match {
+  id          String     @id @default(cuid())
+  homeTeamId  String
+  awayTeamId  String
+  homeTeam    Team       @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam    Team       @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  date        DateTime
+  competition String
+  homeScore   Int?
+  awayScore   Int?
+  status      String     @default("scheduled")
+  analyses    Analysis[]
+}
+
+model TeamStats {
+  id            String @id @default(cuid())
+  teamId        String
+  team          Team   @relation(fields: [teamId], references: [id])
+  period        String
+  goalsScored   Int    @default(0)
+  goalsConceded Int    @default(0)
+  avgShots      Float  @default(0)
+  avgCorners    Float  @default(0)
+  wins          Int    @default(0)
+  draws         Int    @default(0)
+  losses        Int    @default(0)
+}
+
+model InjuryNews {
+  id          String   @id @default(cuid())
+  teamId      String
+  team        Team     @relation(fields: [teamId], references: [id])
+  type        String
+  description String
+  date        DateTime @default(now())
+}
+
+model Analysis {
+  id           String    @id @default(cuid())
+  matchId      String?
+  match        Match?    @relation(fields: [matchId], references: [id])
+  teamId       String?
+  team         Team?     @relation(fields: [teamId], references: [id])
+  overallScore Float
+  aiText       String    @db.Text
+  confidence   Float
+  createdAt    DateTime  @default(now())
+  history      UserAnalysisHistory[]
+}
+
+model Favorite {
+  id            String  @id @default(cuid())
+  userId        String
+  user          User    @relation(fields: [userId], references: [id])
+  teamId        String?
+  team          Team?   @relation(fields: [teamId], references: [id])
+  competitionId String?
+}
+
+model UserAnalysisHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  analysisId String
+  analysis   Analysis @relation(fields: [analysisId], references: [id])
+  viewedAt   DateTime @default(now())
+}
